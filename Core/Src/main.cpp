@@ -18,6 +18,9 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "stm32f4xx_hal.h"
+#include <cmath> // Include the math library for pow() and log() functions
+#include <cstdio> // Include for printf() function
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -32,6 +35,21 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+#define MQ_PIN 0 // Analog pin connected to sensor
+#define RL_VALUE 20 // RL Resistance in Kilo ohms
+#define R0 0.018 // R0 Resistance in kilo ohms (use other code to get it)
+
+// Variables we need in the code
+#define READ_SAMPLE_INTERVAL 100 // Time between samples
+#define READ_SAMPLE_TIMES 5 // Amount of samples
+
+// Add next points values according to your datasheet Rs/R0 graph
+#define X0 50
+#define Y0 0.18
+#define X1 500
+#define Y1 0.012
+
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -43,6 +61,14 @@
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+
+// Calculate the curve points {X, Y}
+const float point0[] = { std::log10(X0), std::log10(Y0) };
+const float point1[] = { std::log10(X1), std::log10(Y1) };
+
+// Calculate the values of the graph
+const float slope = (point1[1] - point[1]) / (point1[0] - point0[0]);
+const float coord = point0[1] - point0[0] * slope;
 
 /* USER CODE END PV */
 
@@ -76,6 +102,7 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -88,6 +115,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
+
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -99,6 +127,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	  // Yo do this work
   }
   /* USER CODE END 3 */
 }
