@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "liquidcrystal_i2c.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -61,7 +60,8 @@ static void MX_I2C1_Init(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 *
+/* USER CODE BEGIN 0 */
+
 /* USER CODE END 0 */
 
 /**
@@ -101,9 +101,19 @@ int main(void)
   MX_ADC1_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+  int pressed = 0;
   HD44780_Init(2);
   HD44780_Clear();
-  HAL_Delay(2000);
+  HD44780_Backlight();
+  char snum[5];
+  for (int x = 20;x>=1; x--){
+      itoa(x, snum, 10);
+      HD44780_Clear();
+      HD44780_SetCursor(0,0);
+      HD44780_PrintStr("Startup: ");
+      HD44780_PrintStr(snum);
+      HAL_Delay (1000);
+    }
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -114,31 +124,56 @@ int main(void)
 	 HAL_ADC_Start(&hadc1);
 	 HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
 	 raw = HAL_ADC_GetValue(&hadc1);
+	 if(raw<630){
+		 raw = 630;
+	 }
+	 r0 = 630;
+	 float b = raw/r0;
 	 HD44780_Clear();
 	 HD44780_SetCursor(0,0);
 	 HAL_GPIO_WritePin(GPIOA,GPIO_PIN_10, GPIO_PIN_RESET);
-	 sprintf(msg, "%hu\r\n", raw);
-	 HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-	 HAL_Delay(1000);
-	 r0 = 630;
-	 float b = raw/r0;
+	 pressed = HAL_GPIO_ReadPin(BUTTON_GPIO_Port, BUTTON_Pin);
+	 bac = (0.09*log(b))/5;
+     HD44780_PrintStr("Awaiting... ");
+     HAL_Delay(1000);
+	 int n = 1;
+	 if(pressed){
+		 if(n){
+			 HAL_GPIO_WritePin(SOUND_GPIO_Port,SOUND_Pin, 1);
+			 HAL_delay(1000);
+			 char snum[5];
+			 		  HD44780_PrintStr("Evaluating...");
+			 		  for(int x = 5; x >=1; x--){
+			 		      itoa(x, snum, 10);
+			 		      HD44780_Clear();
+			 		      HD44780_SetCursor(0,0);
+			 		      HD44780_PrintStr(snum);
+			 		      HAL_Delay (1000);
+			 		    }
+			 		  n = 0;
+		 }
+
+		 sprintf(floatString, "%.3f\r\n", bac);
+		 sprintf(floatString, "BAC: %.3f", bac);
+		 HD44780_PrintStr(floatString);
+		 HAL_UART_Transmit(&huart2, (uint8_t*)floatString, strlen(floatString), HAL_MAX_DELAY);
+		 HAL_Delay(5000);
+	 }
 
 	 //rs around 36.154 at default
 
-	 bac = (0.09*log(b))/5;
-	 sprintf(floatString, "%.3f\r\n", bac);
-	 sprintf(floatString, "BAC: %.3f", bac);
-	 HD44780_PrintStr(floatString);
-	 HAL_UART_Transmit(&huart2, (uint8_t*)floatString, strlen(floatString), HAL_MAX_DELAY);
+	 //if(btn_state == GPIO_PIN_SET){
 
-	 HAL_Delay(1000);
+
+	}//else{
+		 HD44780_Clear();
+	//  Q
 
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
-}
 
 /**
   * @brief System Clock Configuration
@@ -157,14 +192,13 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 16;
-  RCC_OscInitStruct.PLL.PLLN = 336;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 4;
+  RCC_OscInitStruct.PLL.PLLN = 84;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -311,20 +345,32 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, LD2_Pin|GPIO_PIN_10, GPIO_PIN_RESET);
-  //Raw is around 460, when vodka is sprayed, goes to around 2600
-  /*Configure GPIO pin : B1_Pin */
-  GPIO_InitStruct.Pin = B1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : LD2_Pin PA10 */
-  GPIO_InitStruct.Pin = LD2_Pin|GPIO_PIN_10;
+  /*Configure GPIO pin : BTN_Pin */
+  GPIO_InitStruct.Pin = BTN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(BTN_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : BUTTON_Pin */
+  GPIO_InitStruct.Pin = BUTTON_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(BUTTON_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PB5 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
