@@ -116,18 +116,21 @@ int main(void)
 	 raw = HAL_ADC_GetValue(&hadc1);
 	 HD44780_Clear();
 	 HD44780_SetCursor(0,0);
-	 float sensorValue = raw/(1024*5.0);
-	 rs = (5.0-sensorValue)/sensorValue;
-	 //rs around 36.154 at default
-	 r0 = 72;
-	 bac = 0.488*pow(rs/r0, 0.716)/5;
 	 HAL_GPIO_WritePin(GPIOA,GPIO_PIN_10, GPIO_PIN_RESET);
+	 sprintf(msg, "%hu\r\n", raw);
+	 HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+	 HAL_Delay(1000);
+	 r0 = 630;
+	 float b = raw/r0;
+
+	 //rs around 36.154 at default
+
+	 bac = (0.09*log(b))/5;
 	 sprintf(floatString, "%.3f\r\n", bac);
 	 sprintf(floatString, "BAC: %.3f", bac);
 	 HD44780_PrintStr(floatString);
 	 HAL_UART_Transmit(&huart2, (uint8_t*)floatString, strlen(floatString), HAL_MAX_DELAY);
-	 sprintf(msg, "%hu\r\n", raw);
-	 HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+
 	 HAL_Delay(1000);
 
     /* USER CODE END WHILE */
