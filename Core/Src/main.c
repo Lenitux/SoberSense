@@ -139,6 +139,8 @@ int main(void)
 	 int n = 1;
 	 if(pressed){
 		 if(n){
+			 HAL_GPIO_WritePin(SOUND_GPIO_Port,SOUND_Pin, 1);
+			 HAL_delay(1000);
 			 char snum[5];
 			 		  HD44780_PrintStr("Evaluating...");
 			 		  for(int x = 5; x >=1; x--){
