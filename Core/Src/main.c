@@ -32,7 +32,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define R0_VAL 930;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -73,7 +72,11 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 	uint16_t raw;
+	float rs;
+	float r0;
+	float bac;
 	char msg[10];
+	char floatString[20];
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -113,11 +116,16 @@ int main(void)
 	 raw = HAL_ADC_GetValue(&hadc1);
 	 HD44780_Clear();
 	 HD44780_SetCursor(0,0);
-	 sprintf(msg, "Raw: %hu", raw);
-	 HD44780_PrintStr(msg);
-	 float yValue = (float)raw / R0_VAL;
-	 float bacValue = powf(yValue/0.488f, -1.0f/0.716f);
+	 float sensorValue = raw/(1024*5.0);
+	 rs = (5.0-sensorValue)/sensorValue;
+	 //rs around 36.154 at default
+	 r0 = 72;
+	 bac = 0.488*pow(rs/r0, 0.716)/5;
 	 HAL_GPIO_WritePin(GPIOA,GPIO_PIN_10, GPIO_PIN_RESET);
+	 sprintf(floatString, "%.3f\r\n", bac);
+	 sprintf(floatString, "BAC: %.3f", bac);
+	 HD44780_PrintStr(floatString);
+	 HAL_UART_Transmit(&huart2, (uint8_t*)floatString, strlen(floatString), HAL_MAX_DELAY);
 	 sprintf(msg, "%hu\r\n", raw);
 	 HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 	 HAL_Delay(1000);
