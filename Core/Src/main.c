@@ -101,9 +101,19 @@ int main(void)
   MX_ADC1_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+  int pressed = 0;
   HD44780_Init(2);
   HD44780_Clear();
-  HAL_Delay(2000);
+  HD44780_Backlight();
+  char snum[5];
+  for (int x = 20;x>=1; x--){
+      itoa(x, snum, 10);
+      HD44780_Clear();
+      HD44780_SetCursor(0,0);
+      HD44780_PrintStr("Startup: ");
+      HD44780_PrintStr(snum);
+      HAL_Delay (1000);
+    }
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -114,36 +124,54 @@ int main(void)
 	 HAL_ADC_Start(&hadc1);
 	 HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
 	 raw = HAL_ADC_GetValue(&hadc1);
+	 if(raw<630){
+		 raw = 630;
+	 }
+	 r0 = 630;
+	 float b = raw/r0;
 	 HD44780_Clear();
 	 HD44780_SetCursor(0,0);
 	 HAL_GPIO_WritePin(GPIOA,GPIO_PIN_10, GPIO_PIN_RESET);
+	 pressed = HAL_GPIO_ReadPin(BUTTON_GPIO_Port, BUTTON_Pin);
+	 bac = (0.09*log(b))/5;
+     HD44780_PrintStr("Awaiting... ");
+     HAL_Delay(1000);
+	 int n = 1;
+	 if(pressed){
+		 if(n){
+			 char snum[5];
+			 		  HD44780_PrintStr("Evaluating...");
+			 		  for(int x = 5; x >=1; x--){
+			 		      itoa(x, snum, 10);
+			 		      HD44780_Clear();
+			 		      HD44780_SetCursor(0,0);
+			 		      HD44780_PrintStr(snum);
+			 		      HAL_Delay (1000);
+			 		    }
+			 		  n = 0;
+		 }
 
-	 r0 = 630;
-	 float b = raw/r0;
-
+		 sprintf(floatString, "%.3f\r\n", bac);
+		 sprintf(floatString, "BAC: %.3f", bac);
+		 HD44780_PrintStr(floatString);
+		 HAL_UART_Transmit(&huart2, (uint8_t*)floatString, strlen(floatString), HAL_MAX_DELAY);
+		 HAL_Delay(5000);
+	 }
 
 	 //rs around 36.154 at default
 
-	 bac = (0.09*log(b))/5;
-	 if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1) == GPIO_PIN_RESET){
-	 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, 0);
+	 //if(btn_state == GPIO_PIN_SET){
 
-	 }else{
-	 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, 1);
-	 	sprintf(floatString, "%.3f\r\n", bac);
-	 	sprintf(floatString, "BAC: %.3f", bac);
-	 	HD44780_PrintStr(floatString);
-	 	HAL_UART_Transmit(&huart2, (uint8_t*)floatString, strlen(floatString), HAL_MAX_DELAY);
-	 	HAL_Delay(10000);
-	 }
 
+	}//else{
+		 HD44780_Clear();
+	//  Q
 
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
-}
 
 /**
   * @brief System Clock Configuration
@@ -315,16 +343,22 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, LD2_Pin|GPIO_PIN_10, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PC13 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  /*Configure GPIO pin : BTN_Pin */
+  GPIO_InitStruct.Pin = BTN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(BTN_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LD2_Pin PA10 */
-  GPIO_InitStruct.Pin = LD2_Pin|GPIO_PIN_10;
+  /*Configure GPIO pin : BUTTON_Pin */
+  GPIO_InitStruct.Pin = BUTTON_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(BUTTON_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
