@@ -140,10 +140,12 @@ int main(void)
 	 if(pressed){
 		 if(n){
 			 HAL_GPIO_WritePin(SOUND_GPIO_Port,SOUND_Pin, 1);
-			 HAL_delay(1000);
+			 HAL_Delay(1000);
+			 HAL_GPIO_WritePin(SOUND_GPIO_Port,SOUND_Pin, 0);
+			 HAL_Delay(1000);
 			 char snum[5];
 			 		  HD44780_PrintStr("Evaluating...");
-			 		  for(int x = 5; x >=1; x--){
+			 		  for(int x = 5; x>=1; x--){
 			 		      itoa(x, snum, 10);
 			 		      HD44780_Clear();
 			 		      HD44780_SetCursor(0,0);
@@ -174,6 +176,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
+
 
 /**
   * @brief System Clock Configuration
@@ -347,6 +350,9 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(SOUND_GPIO_Port, SOUND_Pin, GPIO_PIN_RESET);
+
   /*Configure GPIO pin : BTN_Pin */
   GPIO_InitStruct.Pin = BTN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
@@ -366,11 +372,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PB5 */
-  GPIO_InitStruct.Pin = GPIO_PIN_5;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  /*Configure GPIO pin : SOUND_Pin */
+  GPIO_InitStruct.Pin = SOUND_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(SOUND_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
