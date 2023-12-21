@@ -36,6 +36,7 @@ Usage
 Contributing
 
 Contributions to the project are welcome. If you find issues or have enhancements to suggest, please open an issue or create a pull request.
+
 License
 
 This project is licensed under the MIT License. Feel free to use and modify the code for your projects.
